@@ -196,7 +196,36 @@ function parsePosts(root, format, source, webBase) {
     return !linkAtts.every(a => a.url && textPostLinks.has(`${p.timestamp}::${a.url}`))
   })
 
-  return deduped.sort((a, b) => b.timestamp - a.timestamp)
+  // Merge album photo posts: Facebook serialises multi-photo uploads as N individual posts
+  // at the exact same timestamp with title "... added a new photo."  Combine them into one
+  // post with all photos so the timeline (and Memories) shows a proper photo grid.
+  const albumPhotoRe = /\badded (a new|\d+ new) photos?\b/i
+  const photoGroupMap = new Map()
+  const nonGrouped = []
+  for (const p of deduped) {
+    const isAlbumPhoto =
+      !p.text &&
+      p.attachments.length === 1 &&
+      p.attachments[0].type === 'photo' &&
+      albumPhotoRe.test(p.title ?? '')
+    if (isAlbumPhoto) {
+      const key = `${p.timestamp}::${p.title}::${p.source}`
+      if (!photoGroupMap.has(key)) photoGroupMap.set(key, [])
+      photoGroupMap.get(key).push(p)
+    } else {
+      nonGrouped.push(p)
+    }
+  }
+  for (const group of photoGroupMap.values()) {
+    if (group.length === 1) {
+      nonGrouped.push(group[0])
+    } else {
+      // Merge: keep first post's metadata, collect all photos as attachments
+      nonGrouped.push({ ...group[0], attachments: group.map(p => p.attachments[0]) })
+    }
+  }
+
+  return nonGrouped.sort((a, b) => b.timestamp - a.timestamp)
 }
 
 function parseComments(root, format, source) {

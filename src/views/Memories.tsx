@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react'
 import { useVault } from '../store/vault'
 import { FBPost } from '../types'
 import PhotoImg from './PhotoImg'
-import { formatYear } from '../utils/format'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -122,8 +121,12 @@ function YearGroup({ year, posts, rootFor }: {
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
+type Tab = 'today' | 'week'
+
 export default function Memories() {
   const { state } = useVault()
+  const [tab, setTab] = useState<Tab>('today')
+
   if (state.phase !== 'ready') return null
   const { vault } = state
 
@@ -133,35 +136,27 @@ export default function Memories() {
     return vault.exports.find(e => e.source === post.source)?.rootHandle
   }
 
-  const { onThisDay, weekGroups } = useMemo(() => {
+  const { onThisDay, weekPosts } = useMemo(() => {
     const onThisDay: FBPost[] = []
-    const byDiff = new Map<number, FBPost[]>()
+    const weekPosts: FBPost[] = []
 
     vault.allPosts.forEach(p => {
       const diff = dayDiffInYear(p.timestamp, today)
       if (diff === 0) {
         onThisDay.push(p)
       } else if (Math.abs(diff) <= 3) {
-        if (!byDiff.has(diff)) byDiff.set(diff, [])
-        byDiff.get(diff)!.push(p)
+        weekPosts.push(p)
       }
     })
 
     onThisDay.sort((a, b) => a.timestamp - b.timestamp)
+    weekPosts.sort((a, b) => a.timestamp - b.timestamp)
 
-    // Sort week days: -3 -2 -1 +1 +2 +3
-    const weekGroups = Array.from(byDiff.entries())
-      .sort(([a], [b]) => a - b)
-      .map(([diff, posts]) => ({
-        diff,
-        label: relLabel(diff, today),
-        byYear: groupByYear(posts.sort((a, b) => a.timestamp - b.timestamp)),
-      }))
-
-    return { onThisDay, weekGroups }
+    return { onThisDay, weekPosts }
   }, [vault.allPosts, today])
 
   const onThisDayByYear = groupByYear(onThisDay)
+  const weekByYear = groupByYear(weekPosts)
 
   const todayLabel = today.toLocaleDateString('en-US', {
     weekday: 'long', month: 'long', day: 'numeric',
@@ -172,7 +167,7 @@ export default function Memories() {
       <div className="max-w-2xl mx-auto px-6 py-6">
 
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-6">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-2xl">✨</span>
             <h1 className="text-xl font-bold text-stone-800">Memories</h1>
@@ -180,56 +175,60 @@ export default function Memories() {
           <p className="text-sm text-stone-400 ml-9">{todayLabel}</p>
         </div>
 
-        {/* On This Day */}
-        <section className="mb-10">
-          <h2 className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-5">
-            On This Day
-            {onThisDay.length > 0 && <span className="ml-2 font-normal normal-case tracking-normal">· {onThisDay.length} {onThisDay.length === 1 ? 'memory' : 'memories'}</span>}
-          </h2>
-          {onThisDay.length === 0 ? (
-            <p className="text-stone-400 text-sm">Nothing from this day in previous years.</p>
-          ) : (
-            <div className="space-y-6">
-              {onThisDayByYear.map(({ year, posts }) => (
-                <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
-              ))}
-            </div>
-          )}
-        </section>
+        {/* Tabs */}
+        <div className="flex gap-1 mb-8 border-b border-stone-200">
+          {([
+            { id: 'today' as Tab, label: 'On This Day', count: onThisDay.length },
+            { id: 'week'  as Tab, label: 'This Week',   count: weekPosts.length },
+          ] as const).map(t => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                tab === t.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-stone-500 hover:text-stone-700'
+              }`}
+            >
+              {t.label}
+              {t.count > 0 && (
+                <span className={`ml-1.5 text-xs ${tab === t.id ? 'text-blue-400' : 'text-stone-400'}`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
-        {/* This Week */}
-        <section>
-          <h2 className="text-xs font-semibold text-stone-400 uppercase tracking-widest mb-5">
-            This Week
-            {weekGroups.length > 0 && (
-              <span className="ml-2 font-normal normal-case tracking-normal">
-                · {weekGroups.reduce((s, g) => s + g.byYear.reduce((s2, y) => s2 + y.posts.length, 0), 0)} memories
-              </span>
+        {/* On This Day */}
+        {tab === 'today' && (
+          <section>
+            {onThisDay.length === 0 ? (
+              <p className="text-stone-400 text-sm">Nothing from this day in previous years.</p>
+            ) : (
+              <div className="space-y-6">
+                {onThisDayByYear.map(({ year, posts }) => (
+                  <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
+                ))}
+              </div>
             )}
-          </h2>
-          {weekGroups.length === 0 ? (
-            <p className="text-stone-400 text-sm">Nothing from this week in previous years.</p>
-          ) : (
-            <div className="space-y-10">
-              {weekGroups.map(({ diff, label, byYear }) => (
-                <div key={diff}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <h3 className="text-sm font-semibold text-stone-600">{label}</h3>
-                    <div className="flex-1 h-px bg-stone-200" />
-                    <span className="text-xs text-stone-400">
-                      {byYear.reduce((s, y) => s + y.posts.length, 0)} posts
-                    </span>
-                  </div>
-                  <div className="space-y-6">
-                    {byYear.map(({ year, posts }) => (
-                      <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+          </section>
+        )}
+
+        {/* This Week — flat chronological feed by year */}
+        {tab === 'week' && (
+          <section>
+            {weekPosts.length === 0 ? (
+              <p className="text-stone-400 text-sm">Nothing from this week in previous years.</p>
+            ) : (
+              <div className="space-y-6">
+                {weekByYear.map(({ year, posts }) => (
+                  <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
 
       </div>
     </div>
