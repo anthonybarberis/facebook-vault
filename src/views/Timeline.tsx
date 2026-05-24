@@ -133,6 +133,21 @@ function PostLightbox({
   )
 }
 
+/** Extract a human-readable destination from Facebook's auto-generated post title. */
+function parseDestination(title: string | undefined): { icon: string; label: string } | null {
+  if (!title) return null
+  // "… wrote on [Name]'s timeline/profile."
+  const wroteOn = title.match(/wrote on (.+?)'s (?:timeline|profile)/)
+  if (wroteOn) return { icon: '👤', label: `${wroteOn[1]}'s wall` }
+  // "… posted in [Group Name]."
+  const postedIn = title.match(/posted in (.+?)\.$/)
+  if (postedIn) return { icon: '👥', label: postedIn[1] }
+  // "… added … to [Name]'s timeline."
+  const addedTo = title.match(/added .+ to (.+?)'s timeline/)
+  if (addedTo) return { icon: '👤', label: `${addedTo[1]}'s timeline` }
+  return null
+}
+
 function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDirectoryHandle }) {
   const [expanded, setExpanded] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
@@ -143,6 +158,7 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
   const photos = post.attachments.filter(a => a.type === 'photo' || a.type === 'video')
   const links = post.attachments.filter(a => a.type === 'link')
   const infos = post.attachments.filter(a => a.type === 'info')
+  const destination = parseDestination(post.title)
 
   return (
     <article className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -150,6 +166,13 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
         <time className="text-xs text-stone-400 font-mono">{formatDate(post.timestamp)}</time>
         <SourceBadge source={post.source} />
       </div>
+
+      {destination && (
+        <div className="flex items-center gap-1.5 text-xs text-stone-400 mb-2 -mt-1">
+          <span>{destination.icon}</span>
+          <span className="truncate">{destination.label}</span>
+        </div>
+      )}
 
       {displayText && (
         <div className="text-stone-800 text-sm leading-relaxed whitespace-pre-wrap mb-2">
