@@ -145,7 +145,29 @@ function parsePosts(root, format, source, webBase) {
       posts.push({ id: `${source}:post:${r.timestamp ?? i}:${posts.length}`, timestamp: r.timestamp ?? 0, text, title: r.title, attachments: parseAttachments(r.attachments ?? [], webBase), source })
     })
   }
-  return posts.sort((a, b) => b.timestamp - a.timestamp)
+
+  // Dedup: remove link-only stubs that are duplicated by a post with text at the same timestamp.
+  // Facebook exports sometimes emit a bare link attachment entry AND a full text+link entry for the same share.
+  // Build a set of (timestamp, url) pairs that appear in posts which have text.
+  const textPostLinks = new Set()
+  for (const p of posts) {
+    if (!p.text) continue
+    for (const att of p.attachments) {
+      if (att.type === 'link' && att.url) textPostLinks.add(`${p.timestamp}::${att.url}`)
+    }
+  }
+  const deduped = posts.filter(p => {
+    // Keep posts that have text, or have non-link attachments (photos/videos)
+    if (p.text) return true
+    const linkAtts = p.attachments.filter(a => a.type === 'link')
+    const nonLinkAtts = p.attachments.filter(a => a.type !== 'link')
+    if (nonLinkAtts.length > 0) return true
+    if (linkAtts.length === 0) return true  // no attachments at all — keep (might be title-only)
+    // It's a link-only post: drop it if every link URL appears in a text post at the same timestamp
+    return !linkAtts.every(a => a.url && textPostLinks.has(`${p.timestamp}::${a.url}`))
+  })
+
+  return deduped.sort((a, b) => b.timestamp - a.timestamp)
 }
 
 function parseComments(root, format, source) {
