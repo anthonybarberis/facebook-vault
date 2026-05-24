@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { useVault } from '../store/vault'
 import { FBPost, FBPostAttachment } from '../types'
 import PhotoImg from './PhotoImg'
@@ -308,6 +308,59 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
   )
 }
 
+function Pagination({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (p: number) => void }) {
+  if (totalPages <= 1) return null
+
+  // Build windowed page list: always show first, last, and up to 3 around current
+  const pages: (number | '…')[] = []
+  if (totalPages <= 9) {
+    for (let i = 1; i <= totalPages; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    if (page > 3) pages.push('…')
+    for (let i = Math.max(2, page - 2); i <= Math.min(totalPages - 1, page + 2); i++) pages.push(i)
+    if (page < totalPages - 3) pages.push('…')
+    pages.push(totalPages)
+  }
+
+  const navBtn = (label: string, target: number, disabled: boolean) => (
+    <button
+      key={label}
+      onClick={() => !disabled && onChange(target)}
+      disabled={disabled}
+      className="w-8 h-8 flex items-center justify-center rounded text-sm text-stone-500 hover:bg-stone-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+    >
+      {label}
+    </button>
+  )
+
+  return (
+    <div className="flex items-center justify-center gap-0.5 py-4 flex-wrap">
+      {navBtn('«', 1, page === 1)}
+      {navBtn('‹', page - 1, page === 1)}
+      {pages.map((p, i) =>
+        p === '…' ? (
+          <span key={`ellipsis-${i}`} className="w-8 h-8 flex items-center justify-center text-stone-400 text-sm select-none">…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onChange(p as number)}
+            className={`w-8 h-8 flex items-center justify-center rounded text-sm transition-colors ${
+              p === page
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'text-stone-600 hover:bg-stone-100'
+            }`}
+          >
+            {p}
+          </button>
+        )
+      )}
+      {navBtn('›', page + 1, page === totalPages)}
+      {navBtn('»', totalPages, page === totalPages)}
+    </div>
+  )
+}
+
 export default function Timeline() {
   const { state } = useVault()
   if (state.phase !== 'ready') return null
@@ -317,6 +370,12 @@ export default function Timeline() {
   const [yearFilter, setYearFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
   const [page, setPage] = useState(1)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  function goToPage(p: number) {
+    setPage(p)
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const years = useMemo(() => {
     const ys = new Set(vault.allPosts.map(p => formatYear(p.timestamp)))
@@ -343,8 +402,9 @@ export default function Timeline() {
     return posts
   }, [vault.allPosts, yearFilter, typeFilter, query])
 
-  const paged = filtered.slice(0, page * PAGE_SIZE)
-  const hasMore = paged.length < filtered.length
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage = Math.min(page, totalPages)
+  const paged = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   // Get the right root handle for a post
   function rootFor(post: FBPost): FileSystemDirectoryHandle {
@@ -360,12 +420,12 @@ export default function Timeline() {
           type="search"
           placeholder="Search posts…"
           value={query}
-          onChange={e => { setQuery(e.target.value); setPage(1) }}
+          onChange={e => { setQuery(e.target.value); goToPage(1) }}
           className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
         />
         <select
           value={yearFilter}
-          onChange={e => { setYearFilter(e.target.value); setPage(1) }}
+          onChange={e => { setYearFilter(e.target.value); goToPage(1) }}
           className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
         >
           <option value="all">All years</option>
@@ -373,7 +433,7 @@ export default function Timeline() {
         </select>
         <select
           value={typeFilter}
-          onChange={e => { setTypeFilter(e.target.value); setPage(1) }}
+          onChange={e => { setTypeFilter(e.target.value); goToPage(1) }}
           className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
         >
           <option value="all">All types</option>
@@ -381,11 +441,13 @@ export default function Timeline() {
           <option value="photo">With photos</option>
           <option value="link">With links</option>
         </select>
-        <span className="text-xs text-stone-400 ml-auto">{filtered.length.toLocaleString()} posts</span>
+        <span className="text-xs text-stone-400 ml-auto">
+          {filtered.length.toLocaleString()} posts · p.{safePage}/{totalPages}
+        </span>
       </div>
 
       {/* Posts */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
           {paged.map(post => (
             <PostCard key={post.id} post={post} rootHandle={rootFor(post)} />
@@ -395,14 +457,7 @@ export default function Timeline() {
             <div className="text-center text-stone-400 py-20 text-sm">No posts match your filters.</div>
           )}
 
-          {hasMore && (
-            <button
-              onClick={() => setPage(p => p + 1)}
-              className="w-full py-3 text-sm text-stone-500 hover:text-stone-700 border border-stone-200 rounded-xl bg-white hover:bg-stone-50 transition-colors"
-            >
-              Load more ({(filtered.length - paged.length).toLocaleString()} remaining)
-            </button>
-          )}
+          <Pagination page={safePage} totalPages={totalPages} onChange={goToPage} />
         </div>
       </div>
     </div>
