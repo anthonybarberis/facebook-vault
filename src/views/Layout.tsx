@@ -93,7 +93,7 @@ export default function Layout({ view, onView, children }: Props) {
             {vault.exports.map(exp => (
               <div key={exp.source} className="flex items-center gap-2 text-xs text-stone-400">
                 <span className={`w-2 h-2 rounded-full flex-shrink-0 ${exp.source === 'export2022' ? 'bg-violet-400' : 'bg-emerald-400'}`} />
-                <span className="truncate">{exp.format} export · {pluralize(exp.posts.length, 'post')}</span>
+                <span className="truncate">{exp.format} export · {pluralize((exp as unknown as Record<string,number>).postCount ?? exp.posts?.length ?? 0, 'post')}</span>
               </div>
             ))}
             <button

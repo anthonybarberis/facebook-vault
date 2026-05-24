@@ -6,7 +6,7 @@ import { useEffect, useState, useRef } from 'react'
 import { resolveUri, createObjectUrl } from '../utils/fs'
 
 interface Props {
-  rootHandle: FileSystemDirectoryHandle
+  rootHandle?: FileSystemDirectoryHandle
   uri: string
   alt?: string
   className?: string
@@ -18,7 +18,17 @@ export default function PhotoImg({ rootHandle, uri, alt = '', className = '', on
   const [error, setError] = useState(false)
   const urlRef = useRef<string | null>(null)
 
+  // If uri is already a web path (starts with /exports/ from preprocessing), use directly
+  const isWebUri = uri.startsWith('/exports/') || uri.startsWith('http')
+
   useEffect(() => {
+    if (isWebUri) {
+      setSrc(uri)
+      return
+    }
+
+    if (!rootHandle) { setError(true); return }
+
     let cancelled = false
     setSrc(null)
     setError(false)
@@ -46,7 +56,7 @@ export default function PhotoImg({ rootHandle, uri, alt = '', className = '', on
         urlRef.current = null
       }
     }
-  }, [rootHandle, uri])
+  }, [rootHandle, uri, isWebUri])
 
   if (error) {
     return (

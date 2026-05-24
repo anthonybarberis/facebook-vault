@@ -15,6 +15,7 @@ function AppInner() {
   const { state } = useVault()
   const [view, setView] = useState<ViewName>('timeline')
 
+  if (state.phase === 'booting') return <Loading progress={{ stage: 'Loading your archive…', current: 0, total: 1 }} />
   if (state.phase === 'setup') return <Setup />
   if (state.phase === 'loading') return <Loading progress={state.progress} />
   if (state.phase === 'error') {
