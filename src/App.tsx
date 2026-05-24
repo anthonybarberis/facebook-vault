@@ -10,6 +10,7 @@ import Events from './views/Events'
 import People from './views/People'
 import Activity from './views/Activity'
 import Stats from './views/Stats'
+import Memories from './views/Memories'
 
 function AppInner() {
   const { state } = useVault()
@@ -45,6 +46,7 @@ function AppInner() {
       {view === 'people' && <People />}
       {view === 'activity' && <Activity />}
       {view === 'stats' && <Stats />}
+      {view === 'memories' && <Memories />}
     </Layout>
   )
 }

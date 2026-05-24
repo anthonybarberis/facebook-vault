@@ -3,7 +3,7 @@ import { useVault } from '../store/vault'
 import { VaultData } from '../types'
 import { pluralize } from '../utils/format'
 
-export type ViewName = 'timeline' | 'albums' | 'messages' | 'events' | 'people' | 'activity' | 'stats'
+export type ViewName = 'timeline' | 'albums' | 'messages' | 'events' | 'people' | 'activity' | 'stats' | 'memories'
 
 interface NavItem {
   id: ViewName
@@ -20,6 +20,7 @@ function navItems(vault: VaultData): NavItem[] {
     { id: 'events', label: 'Events', icon: '📅', count: vault.allEvents.length },
     { id: 'people', label: 'People', icon: '👥', count: vault.allFriends.length },
     { id: 'activity', label: 'Activity', icon: '❤️', count: vault.allComments.length + vault.allReactions.length },
+    { id: 'memories', label: 'Memories', icon: '✨' },
     { id: 'stats', label: 'Stats', icon: '📊' },
   ]
 }
