@@ -147,9 +147,10 @@ function extractMeta(title?: string, tags?: string[]): Array<{ icon: string; lab
   const act = title.match(/\bwas (watching|playing|eating|listening to) (.+?)(?=\s+with\b|\s+at\b|\.$|$)/)
   if (act) chips.push({ icon: actMap[act[1]] ?? '▶️', label: `${act[1]} ${act[2].trim()}` })
 
-  // Check-in location: only for "was at X" / "was with Y at X" patterns (capital place name, not groups/walls)
+  // Title-based location fallback: only when no place attachment exists
+  // (real place data comes from parseAttachments; this catches "was at X" in title only)
   if (!/\b(posted in|wrote on|added .+ to)\b/.test(title)) {
-    const loc = title.match(/\bat ([A-Z][^.]+?)\.?$/)
+    const loc = title.match(/\bwas (?:with .+? )?at ([A-Z][^.]+?)\.?$/)
     if (loc) chips.push({ icon: '📍', label: loc[1].trim() })
   }
 
@@ -195,8 +196,12 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
   const photos = post.attachments.filter(a => a.type === 'photo' || a.type === 'video')
   const links = post.attachments.filter(a => a.type === 'link')
   const infos = post.attachments.filter(a => a.type === 'info')
+  const places = post.attachments.filter(a => a.type === 'place')
   const destination = parseDestination(post.title)
-  const metaChips = extractMeta(post.title, post.tags)
+  const metaChips = [
+    ...extractMeta(post.title, post.tags),
+    ...places.map(p => ({ icon: '📍', label: p.placeName ?? '' })).filter(c => c.label),
+  ]
 
   return (
     <article className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition-shadow">

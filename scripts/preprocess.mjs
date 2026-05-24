@@ -122,6 +122,9 @@ function parseAttachments(rawAttachments, webBase) {
         out.push({ type: isVideo ? 'video' : 'photo', uri: m.uri ? `${webBase}/${m.uri}` : undefined, mediaTitle: m.title, description: m.description })
       } else if (item?.external_context) {
         out.push({ type: 'link', url: item.external_context.url, linkTitle: item.external_context.name, linkDescription: item.external_context.description })
+      } else if (item?.place) {
+        const pl = item.place
+        out.push({ type: 'place', placeName: pl.name, placeAddress: pl.address, latitude: pl.coordinate?.latitude, longitude: pl.coordinate?.longitude })
       }
     }
     // If the only items were text metadata (no URL, no media), emit a single info attachment
