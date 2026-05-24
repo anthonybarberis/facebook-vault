@@ -201,6 +201,12 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
   const metaChips = [
     ...extractMeta(post.title, post.tags),
     ...places.map(p => ({ icon: '📍', label: p.placeName ?? '' })).filter(c => c.label),
+    ...post.attachments.filter(a => a.type === 'life_event' && a.lifeEventTitle)
+      .map(a => ({ icon: '🌟', label: a.lifeEventTitle! })),
+    ...post.attachments.filter(a => a.type === 'event' && a.eventName)
+      .map(a => ({ icon: '📅', label: a.eventName! })),
+    ...post.attachments.filter(a => a.type === 'poll' && a.pollQuestion)
+      .map(a => ({ icon: '📊', label: a.pollQuestion!.length > 60 ? a.pollQuestion!.slice(0, 60) + '…' : a.pollQuestion! })),
   ]
 
   return (

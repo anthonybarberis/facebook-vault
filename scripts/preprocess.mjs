@@ -125,6 +125,12 @@ function parseAttachments(rawAttachments, webBase) {
       } else if (item?.place) {
         const pl = item.place
         out.push({ type: 'place', placeName: pl.name, placeAddress: pl.address, latitude: pl.coordinate?.latitude, longitude: pl.coordinate?.longitude })
+      } else if (item?.event) {
+        out.push({ type: 'event', eventName: item.event.name, eventStart: item.event.start_timestamp })
+      } else if (item?.life_event) {
+        out.push({ type: 'life_event', lifeEventTitle: item.life_event.title })
+      } else if (item?.poll) {
+        out.push({ type: 'poll', pollQuestion: item.poll.question })
       }
     }
     // If the only items were text metadata (no URL, no media), emit a single info attachment

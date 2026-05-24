@@ -17,7 +17,7 @@ export interface FBProfile {
 
 // ─── Posts ───────────────────────────────────────────────────────────────────
 export interface FBPostAttachment {
-  type: 'photo' | 'video' | 'link' | 'text' | 'info' | 'place'
+  type: 'photo' | 'video' | 'link' | 'text' | 'info' | 'place' | 'event' | 'life_event' | 'poll'
   // for photo/video
   uri?: string
   mediaTitle?: string
@@ -33,6 +33,13 @@ export interface FBPostAttachment {
   placeAddress?: string
   latitude?: number
   longitude?: number
+  // for event
+  eventName?: string
+  eventStart?: number
+  // for life_event
+  lifeEventTitle?: string
+  // for poll
+  pollQuestion?: string
 }
 
 export interface FBPost {
