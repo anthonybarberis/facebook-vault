@@ -459,6 +459,10 @@ export default function Timeline() {
           {filtered.length === 0 && (
             <div className="text-center text-stone-400 py-20 text-sm">No posts match your filters.</div>
           )}
+
+          {filtered.length > 0 && (
+            <Pagination page={safePage} totalPages={totalPages} onChange={goToPage} />
+          )}
         </div>
       </div>
     </div>
