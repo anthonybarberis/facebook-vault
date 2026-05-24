@@ -414,41 +414,39 @@ export default function Timeline() {
   return (
     <div className="h-full flex flex-col">
       {/* Filter bar */}
-      <div className="bg-white border-b border-stone-200 px-6 pt-3 pb-2 flex flex-col gap-2">
-        {/* Row 1: filters + count */}
-        <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="font-semibold text-stone-800 text-sm mr-2">Timeline</h1>
-          <input
-            type="search"
-            placeholder="Search posts…"
-            value={query}
-            onChange={e => { setQuery(e.target.value); goToPage(1) }}
-            className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
-          />
-          <select
-            value={yearFilter}
-            onChange={e => { setYearFilter(e.target.value); goToPage(1) }}
-            className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-          >
-            <option value="all">All years</option>
-            {years.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <select
-            value={typeFilter}
-            onChange={e => { setTypeFilter(e.target.value); goToPage(1) }}
-            className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
-          >
-            <option value="all">All types</option>
-            <option value="text">Text only</option>
-            <option value="photo">With photos</option>
-            <option value="link">With links</option>
-          </select>
-          <span className="text-xs text-stone-400 ml-auto">
-            {filtered.length.toLocaleString()} posts
-          </span>
+      <div className="bg-white border-b border-stone-200 px-6 py-3 flex items-center gap-3">
+        <h1 className="font-semibold text-stone-800 text-sm mr-2">Timeline</h1>
+        <input
+          type="search"
+          placeholder="Search posts…"
+          value={query}
+          onChange={e => { setQuery(e.target.value); goToPage(1) }}
+          className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        />
+        <select
+          value={yearFilter}
+          onChange={e => { setYearFilter(e.target.value); goToPage(1) }}
+          className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+        >
+          <option value="all">All years</option>
+          {years.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+        <select
+          value={typeFilter}
+          onChange={e => { setTypeFilter(e.target.value); goToPage(1) }}
+          className="border border-stone-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+        >
+          <option value="all">All types</option>
+          <option value="text">Text only</option>
+          <option value="photo">With photos</option>
+          <option value="link">With links</option>
+        </select>
+        <div className="flex-1 flex justify-center">
+          <Pagination page={safePage} totalPages={totalPages} onChange={goToPage} />
         </div>
-        {/* Row 2: pagination */}
-        <Pagination page={safePage} totalPages={totalPages} onChange={goToPage} />
+        <span className="text-xs text-stone-400">
+          {filtered.length.toLocaleString()} posts
+        </span>
       </div>
 
       {/* Posts */}
