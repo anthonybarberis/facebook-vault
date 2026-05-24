@@ -112,7 +112,10 @@ function parseAttachments(rawAttachments, webBase) {
   if (!Array.isArray(rawAttachments)) return []
   const out = []
   for (const att of rawAttachments) {
-    for (const item of att?.data ?? []) {
+    const items = att?.data ?? []
+    // Collect loose text items (e.g. Spotify share: service, track, artist)
+    const textItems = items.filter(item => item?.text && !item?.media && !item?.external_context)
+    for (const item of items) {
       if (item?.media) {
         const m = item.media
         const isVideo = m.uri?.match(/\.(mp4|mov|avi|mkv|webm)$/i)
@@ -120,6 +123,10 @@ function parseAttachments(rawAttachments, webBase) {
       } else if (item?.external_context) {
         out.push({ type: 'link', url: item.external_context.url, linkTitle: item.external_context.name, linkDescription: item.external_context.description })
       }
+    }
+    // If the only items were text metadata (no URL, no media), emit a single info attachment
+    if (textItems.length > 0 && textItems.length === items.length) {
+      out.push({ type: 'info', lines: textItems.map(i => i.text) })
     }
   }
   return out
@@ -156,13 +163,25 @@ function parsePosts(root, format, source, webBase) {
       if (att.type === 'link' && att.url) textPostLinks.add(`${p.timestamp}::${att.url}`)
     }
   }
+  // Regex to identify GIF CDN URLs that came from comment GIF reactions (not real posts)
+  const gifUrlRe = /\.(gif)($|\?|#)/i
+  const gifHostRe = /\b(tenor\.co|giphy\.com)\b/i
+
   const deduped = posts.filter(p => {
-    // Keep posts that have text, or have non-link attachments (photos/videos)
     if (p.text) return true
     const linkAtts = p.attachments.filter(a => a.type === 'link')
     const nonLinkAtts = p.attachments.filter(a => a.type !== 'link')
+
+    // Drop GIF-reaction artifacts: no text, only GIF CDN link (comment GIFs exported as posts)
+    if (linkAtts.length > 0 && nonLinkAtts.length === 0 &&
+        linkAtts.every(a => a.url && (gifUrlRe.test(a.url) || gifHostRe.test(a.url)))) return false
+
+    // Keep posts with non-link attachments (photos, videos, info cards)
     if (nonLinkAtts.length > 0) return true
-    if (linkAtts.length === 0) return true  // no attachments at all — keep (might be title-only)
+
+    // Drop posts that are entirely empty (no text, no usable attachments after parsing)
+    if (p.attachments.length === 0) return false
+
     // It's a link-only post: drop it if every link URL appears in a text post at the same timestamp
     return !linkAtts.every(a => a.url && textPostLinks.has(`${p.timestamp}::${a.url}`))
   })

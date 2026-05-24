@@ -45,6 +45,7 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
 
   const photos = post.attachments.filter(a => a.type === 'photo' || a.type === 'video')
   const links = post.attachments.filter(a => a.type === 'link')
+  const infos = post.attachments.filter(a => a.type === 'info')
 
   return (
     <article className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -68,6 +69,12 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
       )}
 
       {links.map((att, i) => <LinkPreview key={i} att={att} />)}
+
+      {infos.map((att, i) => (
+        <div key={i} className="border border-stone-200 rounded-lg p-3 mt-2 text-sm text-stone-500 italic">
+          {att.lines?.join(' · ')}
+        </div>
+      ))}
 
       {photos.length > 0 && (
         <div className={`mt-3 grid gap-1 rounded-lg overflow-hidden ${

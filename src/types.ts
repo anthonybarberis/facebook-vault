@@ -17,7 +17,7 @@ export interface FBProfile {
 
 // ─── Posts ───────────────────────────────────────────────────────────────────
 export interface FBPostAttachment {
-  type: 'photo' | 'video' | 'link' | 'text'
+  type: 'photo' | 'video' | 'link' | 'text' | 'info'
   // for photo/video
   uri?: string
   mediaTitle?: string
@@ -26,6 +26,8 @@ export interface FBPostAttachment {
   url?: string
   linkTitle?: string
   linkDescription?: string
+  // for info (e.g. Spotify share metadata with no URL)
+  lines?: string[]
 }
 
 export interface FBPost {
