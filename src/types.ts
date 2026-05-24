@@ -36,6 +36,7 @@ export interface FBPost {
   text?: string
   title?: string
   attachments: FBPostAttachment[]
+  tags?: string[]   // people tagged in the post
   source: ExportSource
 }
 

@@ -133,6 +133,43 @@ function PostLightbox({
   )
 }
 
+/** Extract feeling / activity / location / with-people chips from the title. */
+function extractMeta(title?: string, tags?: string[]): Array<{ icon: string; label: string }> {
+  const chips: Array<{ icon: string; label: string }> = []
+  if (!title) return chips
+
+  // Feeling: "is feeling happy [with ...]"
+  const feel = title.match(/\bis feeling (\w+)/)
+  if (feel) chips.push({ icon: '💭', label: feel[1] })
+
+  // Activity: "was watching/playing/eating/listening to THING"
+  const actMap: Record<string, string> = { watching: '🎬', playing: '🎮', eating: '🍽️', 'listening to': '🎵' }
+  const act = title.match(/\bwas (watching|playing|eating|listening to) (.+?)(?=\s+with\b|\s+at\b|\.$|$)/)
+  if (act) chips.push({ icon: actMap[act[1]] ?? '▶️', label: `${act[1]} ${act[2].trim()}` })
+
+  // Check-in location: only for "was at X" / "was with Y at X" patterns (capital place name, not groups/walls)
+  if (!/\b(posted in|wrote on|added .+ to)\b/.test(title)) {
+    const loc = title.match(/\bat ([A-Z][^.]+?)\.?$/)
+    if (loc) chips.push({ icon: '📍', label: loc[1].trim() })
+  }
+
+  // "Was with people" — only for standalone "was with" (not inside an activity sentence)
+  if (!act) {
+    const withMatch = title.match(/\bwas with (.+?)(?:\s+at .+)?\.?$/)
+    if (withMatch && !/\b(posted in|wrote on)\b/.test(title)) {
+      chips.push({ icon: '🤝', label: `with ${withMatch[1].trim()}` })
+    }
+  }
+
+  // Tagged people (2026 export `tags` field — people tagged in photo posts)
+  if (tags?.length) {
+    const names = tags.slice(0, 3).join(', ') + (tags.length > 3 ? ` +${tags.length - 3}` : '')
+    chips.push({ icon: '🏷️', label: names })
+  }
+
+  return chips
+}
+
 /** Extract a human-readable destination from Facebook's auto-generated post title. */
 function parseDestination(title: string | undefined): { icon: string; label: string } | null {
   if (!title) return null
@@ -159,6 +196,7 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
   const links = post.attachments.filter(a => a.type === 'link')
   const infos = post.attachments.filter(a => a.type === 'info')
   const destination = parseDestination(post.title)
+  const metaChips = extractMeta(post.title, post.tags)
 
   return (
     <article className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -171,6 +209,17 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
         <div className="flex items-center gap-1.5 text-xs text-stone-400 mb-2 -mt-1">
           <span>{destination.icon}</span>
           <span className="truncate">{destination.label}</span>
+        </div>
+      )}
+
+      {metaChips.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-2">
+          {metaChips.map((chip, i) => (
+            <span key={i} className="inline-flex items-center gap-1 text-xs bg-stone-50 border border-stone-200 text-stone-500 rounded-full px-2 py-0.5">
+              <span>{chip.icon}</span>
+              <span>{chip.label}</span>
+            </span>
+          ))}
         </div>
       )}
 

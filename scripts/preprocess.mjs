@@ -149,7 +149,8 @@ function parsePosts(root, format, source, webBase) {
     raw = fixDeep(raw)
     raw.forEach((r, i) => {
       const text = r.data?.find(d => d.post)?.post
-      posts.push({ id: `${source}:post:${r.timestamp ?? i}:${posts.length}`, timestamp: r.timestamp ?? 0, text, title: r.title, attachments: parseAttachments(r.attachments ?? [], webBase), source })
+      const tags = (r.tags ?? []).map(t => t.name).filter(Boolean)
+      posts.push({ id: `${source}:post:${r.timestamp ?? i}:${posts.length}`, timestamp: r.timestamp ?? 0, text, title: r.title, attachments: parseAttachments(r.attachments ?? [], webBase), ...(tags.length ? { tags } : {}), source })
     })
   }
 
