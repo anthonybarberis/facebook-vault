@@ -8,6 +8,8 @@ interface PickedFolder {
   name: string
 }
 
+const SUPPORTED = 'showDirectoryPicker' in window
+
 export default function Setup() {
   const { loadExports } = useVault()
   const [folders, setFolders] = useState<PickedFolder[]>([])
@@ -15,6 +17,7 @@ export default function Setup() {
   const [error, setError] = useState<string | null>(null)
 
   async function pickFolder() {
+    if (!SUPPORTED) return
     setPicking(true)
     setError(null)
     try {
@@ -67,6 +70,17 @@ export default function Setup() {
           <p className="text-stone-500 text-sm mb-4">
             Select the folder(s) containing your Facebook data export. You can load one or two exports — Vault will merge them into a single timeline.
           </p>
+
+          {!SUPPORTED && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
+              <span className="font-semibold">Chrome or Edge required.</span>{' '}
+              This app uses the File System Access API to read your export locally without uploading it.
+              Firefox and Safari don't support this API yet — please open this page in{' '}
+              <a href="https://www.google.com/chrome/" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-900">Chrome</a>
+              {' '}or{' '}
+              <a href="https://www.microsoft.com/edge" target="_blank" rel="noopener noreferrer" className="underline hover:text-amber-900">Edge</a>.
+            </div>
+          )}
           <div className="text-sm text-stone-400 bg-stone-50 rounded-lg p-3 mb-4 font-mono">
             <div className="text-stone-500 mb-1 font-sans font-medium">Which folder to select:</div>
             <div>📁 facebook-your_name-json-2021.XXXX/</div>
@@ -96,7 +110,7 @@ export default function Setup() {
 
           <button
             onClick={pickFolder}
-            disabled={picking || folders.length >= 2}
+            disabled={!SUPPORTED || picking || folders.length >= 2}
             className="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 px-4 text-stone-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
             {picking ? 'Opening folder picker…' : folders.length >= 2 ? 'Both exports loaded' : '+ Add export folder'}
