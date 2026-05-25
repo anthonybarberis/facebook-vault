@@ -9,8 +9,13 @@ import {
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899']
 
-// System/bot account names to exclude from friend stats
-const SYSTEM_NAMES = new Set(['Facebook', 'Messenger', 'Instagram', 'Facebook Pay', 'Marketplace'])
+// System/bot account name prefixes to exclude from friend stats
+// Checked against the first word so "Facebook User", "Facebook Pay", etc. all match
+const SYSTEM_PREFIXES = ['Facebook', 'Messenger', 'Instagram', 'Marketplace']
+function isSystemAccount(name: string) {
+  const first = name.split(' ')[0].toLowerCase()
+  return SYSTEM_PREFIXES.some(p => p.toLowerCase() === first)
+}
 
 const STOP_WORDS = new Set([
   'the','and','a','an','is','it','in','on','of','to','for','that','this','was',
@@ -81,7 +86,7 @@ export default function Stats() {
     const counts: Record<string, number> = {}
     for (const thread of vault.allThreads) {
       for (const p of thread.participants) {
-        if (p && p !== myName && !SYSTEM_NAMES.has(p)) {
+        if (p && p !== myName && !isSystemAccount(p)) {
           counts[p] = (counts[p] ?? 0) + thread.messages.length
         }
       }
