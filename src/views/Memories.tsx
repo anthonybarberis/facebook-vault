@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useVault } from '../store/vault'
 import { FBPost } from '../types'
 import PhotoImg from './PhotoImg'
+import PostLightbox from './PostLightbox'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -37,6 +38,7 @@ function relLabel(diff: number, today: Date): string {
 
 function MemoryCard({ post, rootHandle }: { post: FBPost; rootHandle?: FileSystemDirectoryHandle }) {
   const [expanded, setExpanded] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const text = post.text ?? ''
   const isLong = text.length > 300
   const display = isLong && !expanded ? text.slice(0, 300) + '…' : text
@@ -69,19 +71,41 @@ function MemoryCard({ post, rootHandle }: { post: FBPost; rootHandle?: FileSyste
           photos.length === 1 ? 'grid-cols-1' : photos.length === 2 ? 'grid-cols-2' : 'grid-cols-3'
         }`}>
           {photos.slice(0, 6).map((att, i) => (
-            <PhotoImg
+            <button
               key={i}
-              rootHandle={rootHandle}
-              uri={att.uri!}
-              alt={att.mediaTitle ?? ''}
-              className={`w-full object-cover ${photos.length === 1 ? 'max-h-72' : 'h-32'}`}
-            />
+              onClick={() => setLightboxIndex(i)}
+              className={`block w-full focus:outline-none group relative overflow-hidden ${
+                photos.length === 1 ? 'max-h-72' : 'h-32'
+              }`}
+            >
+              <PhotoImg
+                rootHandle={rootHandle}
+                uri={att.uri!}
+                alt={att.mediaTitle ?? ''}
+                className="w-full h-full object-cover group-hover:brightness-90 transition-[filter]"
+              />
+              {i === 5 && photos.length > 6 && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-lg font-semibold">
+                  +{photos.length - 6} more
+                </div>
+              )}
+            </button>
           ))}
         </div>
       )}
 
       {!display && !photos.length && post.title && (
         <p className="text-sm text-stone-400 italic">{post.title}</p>
+      )}
+
+      {lightboxIndex !== null && (
+        <PostLightbox
+          photos={photos}
+          index={lightboxIndex}
+          rootHandle={rootHandle}
+          onClose={() => setLightboxIndex(null)}
+          onChange={setLightboxIndex}
+        />
       )}
     </div>
   )
