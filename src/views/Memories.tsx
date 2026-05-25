@@ -1,10 +1,24 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useVault } from '../store/vault'
 import { FBPost } from '../types'
 import PhotoImg from './PhotoImg'
 import PostLightbox from './PostLightbox'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const MONTH_STARTS = [1, 32, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]
+const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+const DAYS = 365
+
+function getDOY(date: Date): number {
+  // Day of year 1–365
+  return Math.ceil((date.getTime() - new Date(date.getFullYear(), 0, 0).getTime()) / 86400000)
+}
+
+function doyToDate(doy: number): Date {
+  const d = new Date(new Date().getFullYear(), 0, doy)
+  return d
+}
 
 function groupByYear(posts: FBPost[]): { year: number; posts: FBPost[] }[] {
   const map = new Map<number, FBPost[]>()
@@ -18,23 +32,106 @@ function groupByYear(posts: FBPost[]): { year: number; posts: FBPost[] }[] {
     .map(([year, posts]) => ({ year, posts }))
 }
 
+// ─── Scrubber ─────────────────────────────────────────────────────────────────
+
+function DayScrubber({ date, onChange }: { date: Date; onChange: (d: Date) => void }) {
+  const trackRef  = useRef<HTMLDivElement>(null)
+  const dragging  = useRef(false)
+  const dateRef   = useRef(date)
+  const changeRef = useRef(onChange)
+  useEffect(() => { dateRef.current   = date },     [date])
+  useEffect(() => { changeRef.current = onChange }, [onChange])
+
+  const doy      = getDOY(date)
+  const fraction = (doy - 1) / (DAYS - 1)
+
+  const applyX = useCallback((clientX: number) => {
+    const rect = trackRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const f      = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const newDoy = Math.round(f * (DAYS - 1)) + 1
+    changeRef.current(doyToDate(newDoy))
+  }, [])
+
+  useEffect(() => {
+    const onMove  = (e: MouseEvent)  => { if (dragging.current) applyX(e.clientX) }
+    const onTouch = (e: TouchEvent)  => { if (dragging.current) applyX(e.touches[0].clientX) }
+    const onUp    = ()               => { dragging.current = false }
+    window.addEventListener('mousemove',  onMove)
+    window.addEventListener('mouseup',    onUp)
+    window.addEventListener('touchmove',  onTouch)
+    window.addEventListener('touchend',   onUp)
+    return () => {
+      window.removeEventListener('mousemove',  onMove)
+      window.removeEventListener('mouseup',    onUp)
+      window.removeEventListener('touchmove',  onTouch)
+      window.removeEventListener('touchend',   onUp)
+    }
+  }, [applyX])
+
+  return (
+    <div className="select-none px-1">
+      {/* Track */}
+      <div
+        ref={trackRef}
+        className="relative h-2 rounded-full bg-stone-200 cursor-pointer"
+        onMouseDown={e => { dragging.current = true; applyX(e.clientX) }}
+        onTouchStart={e => { dragging.current = true; applyX(e.touches[0].clientX) }}
+      >
+        {/* Filled */}
+        <div
+          className="absolute inset-y-0 left-0 bg-blue-300 rounded-full pointer-events-none"
+          style={{ width: `${fraction * 100}%` }}
+        />
+
+        {/* Month tick marks */}
+        {MONTH_STARTS.map((start, i) => (
+          <div
+            key={i}
+            className="absolute top-0 bottom-0 w-px bg-stone-300/60 pointer-events-none"
+            style={{ left: `${((start - 1) / (DAYS - 1)) * 100}%` }}
+          />
+        ))}
+
+        {/* Thumb */}
+        <div
+          className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full bg-blue-500 ring-2 ring-white shadow-md pointer-events-none"
+          style={{ left: `${fraction * 100}%` }}
+        />
+      </div>
+
+      {/* Month labels */}
+      <div className="relative mt-2 h-4">
+        {MONTH_STARTS.map((start, i) => (
+          <span
+            key={i}
+            className="absolute -translate-x-1/2 text-[10px] text-stone-400 leading-none"
+            style={{ left: `${((start - 1) / (DAYS - 1)) * 100}%` }}
+          >
+            {MONTH_LABELS[i]}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Memory Card ─────────────────────────────────────────────────────────────
 
 function MemoryCard({ post, rootHandle }: { post: FBPost; rootHandle?: FileSystemDirectoryHandle }) {
   const [expanded, setExpanded] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
-  const text = post.text ?? ''
-  const isLong = text.length > 300
+  const text    = post.text ?? ''
+  const isLong  = text.length > 300
   const display = isLong && !expanded ? text.slice(0, 300) + '…' : text
-  const photos = post.attachments.filter(a => a.type === 'photo' && a.uri)
-  const place = post.attachments.find(a => a.type === 'place')
+  const photos  = post.attachments.filter(a => a.type === 'photo' && a.uri)
+  const place   = post.attachments.find(a => a.type === 'place')
 
   return (
     <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
       {place && (
         <div className="flex items-center gap-1.5 mb-2 text-xs text-stone-400">
-          <span>📍</span>
-          <span>{place.placeName}</span>
+          <span>📍</span><span>{place.placeName}</span>
         </div>
       )}
 
@@ -156,7 +253,7 @@ export default function Memories() {
     selectedDate.getDate()  === today.getDate()
 
   const matchingPosts = useMemo(() => {
-    const m = selectedDate.getMonth()
+    const m   = selectedDate.getMonth()
     const day = selectedDate.getDate()
     return vault.allPosts
       .filter(p => {
@@ -166,8 +263,7 @@ export default function Memories() {
       .sort((a, b) => a.timestamp - b.timestamp)
   }, [vault.allPosts, selectedDate])
 
-  const byYear = groupByYear(matchingPosts)
-
+  const byYear    = groupByYear(matchingPosts)
   const dateLabel = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
 
   return (
@@ -175,22 +271,30 @@ export default function Memories() {
       <div className="max-w-2xl mx-auto px-6 py-6">
 
         {/* Header */}
-        <div className="flex items-center gap-2 mb-8">
-          <span className="text-2xl">✨</span>
-          <h1 className="text-xl font-bold text-stone-800">Memories</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">✨</span>
+            <h1 className="text-xl font-bold text-stone-800">Memories</h1>
+          </div>
+          {!isToday && (
+            <button
+              onClick={() => setSelectedDate(new Date())}
+              className="text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded-full px-3 py-1.5 transition-colors"
+            >
+              Today
+            </button>
+          )}
         </div>
 
-        {/* Date navigator */}
-        <div className="flex items-center justify-center gap-3 mb-8">
+        {/* Date display + fine navigation */}
+        <div className="flex items-center justify-center gap-4 mb-4">
           <button
             onClick={() => navigate(-1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-lg"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-xl leading-none"
             aria-label="Previous day"
-          >
-            ‹
-          </button>
+          >‹</button>
 
-          <div className="text-center min-w-[10rem]">
+          <div className="text-center min-w-[11rem]">
             <div className="text-2xl font-bold text-stone-800">{dateLabel}</div>
             <div className="text-xs text-stone-400 mt-0.5">
               {matchingPosts.length === 0
@@ -201,20 +305,14 @@ export default function Memories() {
 
           <button
             onClick={() => navigate(1)}
-            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-lg"
+            className="w-8 h-8 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-xl leading-none"
             aria-label="Next day"
-          >
-            ›
-          </button>
+          >›</button>
+        </div>
 
-          {!isToday && (
-            <button
-              onClick={() => setSelectedDate(new Date())}
-              className="ml-2 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded-full px-3 py-1 transition-colors"
-            >
-              Today
-            </button>
-          )}
+        {/* Scrubber */}
+        <div className="mb-10">
+          <DayScrubber date={selectedDate} onChange={setSelectedDate} />
         </div>
 
         {/* Memories */}
