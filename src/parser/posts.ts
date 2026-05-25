@@ -188,7 +188,7 @@ export async function parsePosts(
 
     for (const fh of files) {
       try {
-        const raw = JSON.parse(await (await fh.getFile()).text()) as Raw[]
+        const raw = fixMojibakeDeep(JSON.parse(await (await fh.getFile()).text())) as Raw[]
         if (Array.isArray(raw)) raw.forEach((r, i) => posts.push(rawToPost(r, source, posts.length + i)))
       } catch { /* skip bad file */ }
     }

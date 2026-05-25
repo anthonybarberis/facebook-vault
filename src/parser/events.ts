@@ -44,9 +44,7 @@ export async function parseEvents(
     try {
       const file = await fh.getFile()
       const text = await file.text()
-      const data = format === '2022'
-        ? fixMojibakeDeep(JSON.parse(text)) as Raw
-        : JSON.parse(text) as Raw
+      const data = fixMojibakeDeep(JSON.parse(text)) as Raw
 
       // Determine role from filename
       let role: FBEvent['role'] = 'invited'

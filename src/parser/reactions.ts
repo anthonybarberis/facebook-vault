@@ -58,7 +58,7 @@ export async function parseReactions(
         try {
           const file = await fh.getFile()
           const text = await file.text()
-          const list: Raw[] = JSON.parse(text)
+          const list: Raw[] = fixMojibakeDeep(JSON.parse(text)) as Raw[]
           if (Array.isArray(list)) {
             list.forEach((item: Raw, i: number) => {
               // Find URL if present
