@@ -15,7 +15,7 @@ function rawToComment(raw: Raw, source: ExportSource, idx: number): FBComment | 
     id: `${source}:comment:${raw.timestamp ?? idx}:${idx}`,
     timestamp: raw.timestamp ?? c.timestamp ?? 0,
     text,
-    author: c.author ?? 'Anthony',
+    author: c.author ?? '',
     title: raw.title,
     source,
   }
@@ -37,7 +37,8 @@ export async function parseComments(
       root,
       'your_facebook_activity', 'comments_and_reactions', 'comments.json'
     )
-    rawList = (data as Raw)?.comments_v2 ?? (Array.isArray(data) ? data : [])
+    const fixed = fixMojibakeDeep(data) as Raw
+    rawList = fixed?.comments_v2 ?? (Array.isArray(fixed) ? fixed : [])
   }
 
   const comments: FBComment[] = []
@@ -52,7 +53,8 @@ export async function parseComments(
       root,
       'your_facebook_activity', 'groups', 'your_comments_in_groups.json'
     )
-    const groupComments: Raw[] = (groupData as Raw)?.group_comments_v2 ?? []
+    const fixed = fixMojibakeDeep(groupData) as Raw
+    const groupComments: Raw[] = fixed?.group_comments_v2 ?? []
     groupComments.forEach((r: Raw, i: number) => {
       const c = rawToComment(r, source, comments.length + i)
       if (c) comments.push(c)

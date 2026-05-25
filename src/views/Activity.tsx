@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useVault } from '../store/vault'
 import { formatDate, REACTION_EMOJI } from '../utils/format'
-import SourceBadge from './SourceBadge'
 
 const PAGE_SIZE = 50
 
@@ -109,7 +108,7 @@ export default function Activity() {
                   <p className="text-sm text-stone-800 leading-relaxed">"{comment.text}"</p>
                   <div className="flex items-center gap-2 mt-2">
                     <time className="text-xs text-stone-400 font-mono">{formatDate(comment.timestamp)}</time>
-                    <SourceBadge source={comment.source} />
+                    
                   </div>
                 </div>
               ))}

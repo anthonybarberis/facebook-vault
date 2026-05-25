@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { useVault } from '../store/vault'
 import { FBFriend } from '../types'
 import { formatDateShort } from '../utils/format'
-import SourceBadge from './SourceBadge'
 
 function initials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -35,7 +34,7 @@ function FriendCard({ friend, messageCount }: { friend: FBFriend; messageCount: 
           {messageCount > 0 && ` · ${messageCount.toLocaleString()} messages`}
         </div>
       </div>
-      <SourceBadge source={friend.source} />
+      
     </div>
   )
 }
@@ -53,7 +52,7 @@ export default function People() {
     const counts: Record<string, number> = {}
     for (const thread of vault.allThreads) {
       for (const p of thread.participants) {
-        if (p && p !== 'Anthony Barberis') {
+        if (p && p !== (vault.profiles[0]?.name ?? '')) {
           counts[p] = (counts[p] ?? 0) + thread.messages.length
         }
       }

@@ -3,7 +3,6 @@ import { useVault } from '../store/vault'
 import { FBPost, FBPostAttachment } from '../types'
 import PhotoImg from './PhotoImg'
 import PostLightbox from './PostLightbox'
-import SourceBadge from './SourceBadge'
 import { formatDate, formatYear } from '../utils/format'
 
 const PAGE_SIZE = 40
@@ -108,7 +107,7 @@ function PostCard({ post, rootHandle }: { post: FBPost; rootHandle: FileSystemDi
     <article className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-3">
         <time className="text-xs text-stone-400 font-mono">{formatDate(post.timestamp)}</time>
-        <SourceBadge source={post.source} />
+        
       </div>
 
       {destination && (

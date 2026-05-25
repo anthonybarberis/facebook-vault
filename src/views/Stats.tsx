@@ -74,11 +74,12 @@ export default function Stats() {
 
   // Top friends by message count
   const myName = vault.profiles[0]?.name ?? ''
+  const SYSTEM_NAMES = new Set(['Facebook', 'Messenger', 'Instagram'])
   const topFriends = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const thread of vault.allThreads) {
       for (const p of thread.participants) {
-        if (p && p !== myName) {
+        if (p && p !== myName && !SYSTEM_NAMES.has(p)) {
           counts[p] = (counts[p] ?? 0) + thread.messages.length
         }
       }
