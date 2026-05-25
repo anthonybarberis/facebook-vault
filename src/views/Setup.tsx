@@ -28,11 +28,7 @@ export default function Setup() {
         setPicking(false)
         return
       }
-      setFolders(prev => {
-        // Replace if same format already picked
-        const filtered = prev.filter(f => f.format !== format)
-        return [...filtered, { handle, format, name: handle.name }]
-      })
+      setFolders(prev => [...prev, { handle, format, name: handle.name }])
     } catch (e: unknown) {
       if (e instanceof Error && e.name !== 'AbortError') {
         setError(String(e))
@@ -41,15 +37,13 @@ export default function Setup() {
     setPicking(false)
   }
 
-  function removeFolder(format: string) {
-    setFolders(prev => prev.filter(f => f.format !== format))
+  function removeFolder(idx: number) {
+    setFolders(prev => prev.filter((_, i) => i !== idx))
   }
 
   function handleLoad() {
     if (folders.length === 0) return
-    // Sort so 2022 comes first (export2022 source tag)
-    const sorted = [...folders].sort((a, b) => a.format.localeCompare(b.format))
-    loadExports(sorted.map(f => f.handle))
+    loadExports(folders.map(f => f.handle))
   }
 
   return (
@@ -90,15 +84,15 @@ export default function Setup() {
           {/* Picked folders */}
           {folders.length > 0 && (
             <div className="mb-4 space-y-2">
-              {folders.map(f => (
-                <div key={f.format} className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+              {folders.map((f, i) => (
+                <div key={i} className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
                   <span className="text-green-500">✓</span>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-stone-800 truncate">{f.name}</div>
                     <div className="text-xs text-stone-400">{f.format} format detected</div>
                   </div>
                   <button
-                    onClick={() => removeFolder(f.format)}
+                    onClick={() => removeFolder(i)}
                     className="text-stone-400 hover:text-red-500 text-sm ml-1"
                   >
                     ✕
@@ -110,10 +104,10 @@ export default function Setup() {
 
           <button
             onClick={pickFolder}
-            disabled={!SUPPORTED || picking || folders.length >= 2}
+            disabled={!SUPPORTED || picking}
             className="w-full border-2 border-dashed border-stone-300 rounded-xl py-3 px-4 text-stone-500 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
           >
-            {picking ? 'Opening folder picker…' : folders.length >= 2 ? 'Both exports loaded' : '+ Add export folder'}
+            {picking ? 'Opening folder picker…' : folders.length === 0 ? '+ Add export folder' : '+ Add another export'}
           </button>
 
           {error && (
@@ -129,7 +123,7 @@ export default function Setup() {
           disabled={folders.length === 0}
           className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-semibold py-4 rounded-2xl transition-colors text-lg shadow-sm"
         >
-          {folders.length === 0 ? 'Add a folder to continue' : `Load ${folders.length === 1 ? '1 export' : '2 exports'} →`}
+          {folders.length === 0 ? 'Add a folder to continue' : `Load ${folders.length} ${folders.length === 1 ? 'export' : 'exports'} →`}
         </button>
 
         {/* Privacy note */}

@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useVault } from '../store/vault'
 import { formatYear, formatMonth, REACTION_EMOJI } from '../utils/format'
+import { EXPORT_COLORS } from '../utils/exports'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
@@ -49,15 +50,15 @@ export default function Stats() {
   if (state.phase !== 'ready') return null
   const { vault } = state
 
-  // Posts per year
+  // Posts per year (one key per loaded export, built dynamically)
   const postsByYear = useMemo(() => {
-    const counts: Record<number, { year: number; export2022: number; export2026: number }> = {}
+    const counts: Record<number, Record<string, number>> = {}
     for (const post of vault.allPosts) {
       const y = formatYear(post.timestamp)
-      if (!counts[y]) counts[y] = { year: y, export2022: 0, export2026: 0 }
-      counts[y][post.source]++
+      if (!counts[y]) counts[y] = { year: y }
+      counts[y][post.source] = (counts[y][post.source] ?? 0) + 1
     }
-    return Object.values(counts).sort((a, b) => a.year - b.year)
+    return Object.values(counts).sort((a, b) => (a.year as number) - (b.year as number))
   }, [vault.allPosts])
 
   // Reactions breakdown
@@ -72,11 +73,12 @@ export default function Stats() {
   }, [vault.allReactions])
 
   // Top friends by message count
+  const myName = vault.profiles[0]?.name ?? ''
   const topFriends = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const thread of vault.allThreads) {
       for (const p of thread.participants) {
-        if (p && p !== 'Anthony Barberis') {
+        if (p && p !== myName) {
           counts[p] = (counts[p] ?? 0) + thread.messages.length
         }
       }
@@ -135,8 +137,9 @@ export default function Stats() {
                 <XAxis dataKey="year" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
                 <Tooltip />
-                <Bar dataKey="export2022" name="2022 export" fill="#8b5cf6" stackId="a" />
-                <Bar dataKey="export2026" name="2026 export" fill="#10b981" stackId="a" />
+                {vault.exports.map((exp, i) => (
+                  <Bar key={exp.source} dataKey={exp.source} name={`${exp.format} export`} fill={EXPORT_COLORS[i % EXPORT_COLORS.length].chart} stackId="a" />
+                ))}
               </BarChart>
             </ResponsiveContainer>
           </div>

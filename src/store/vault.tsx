@@ -50,11 +50,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     setState({ phase: 'loading', progress: { stage: 'Starting…', current: 0, total: handles.length } })
 
     try {
-      const sources = ['export2022', 'export2026'] as const
       const parsed = []
 
       for (let i = 0; i < handles.length; i++) {
-        const source = sources[i] ?? `export${i}` as 'export2022'
+        const source = `export${i}`
         const result = await parseExport(handles[i], source, (p) => {
           setState({ phase: 'loading', progress: { ...p, stage: `Export ${i + 1}: ${p.stage}` } })
         })

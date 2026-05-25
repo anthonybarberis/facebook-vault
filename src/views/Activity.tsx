@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useVault } from '../store/vault'
-import { formatDate } from '../utils/format'
-import { REACTION_EMOJI } from '../utils/format'
+import { formatDate, REACTION_EMOJI } from '../utils/format'
+import SourceBadge from './SourceBadge'
 
 const PAGE_SIZE = 50
 
@@ -109,9 +109,7 @@ export default function Activity() {
                   <p className="text-sm text-stone-800 leading-relaxed">"{comment.text}"</p>
                   <div className="flex items-center gap-2 mt-2">
                     <time className="text-xs text-stone-400 font-mono">{formatDate(comment.timestamp)}</time>
-                    <span className={`text-xs px-1.5 rounded ${
-                      comment.source === 'export2022' ? 'bg-violet-100 text-violet-600' : 'bg-emerald-100 text-emerald-600'
-                    }`}>{comment.source === 'export2022' ? '\'22' : '\'26'}</span>
+                    <SourceBadge source={comment.source} />
                   </div>
                 </div>
               ))}

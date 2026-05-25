@@ -3,21 +3,11 @@ import { useVault } from '../store/vault'
 import { FBPost, FBPostAttachment } from '../types'
 import PhotoImg from './PhotoImg'
 import PostLightbox from './PostLightbox'
+import SourceBadge from './SourceBadge'
 import { formatDate, formatYear } from '../utils/format'
 
 const PAGE_SIZE = 40
 
-function SourceBadge({ source }: { source: string }) {
-  return (
-    <span className={`inline-block text-xs px-1.5 py-0.5 rounded font-mono ${
-      source === 'export2022'
-        ? 'bg-violet-100 text-violet-600'
-        : 'bg-emerald-100 text-emerald-600'
-    }`}>
-      {source === 'export2022' ? '\'22' : '\'26'}
-    </span>
-  )
-}
 
 function LinkPreview({ att }: { att: FBPostAttachment }) {
   if (!att.url) return null

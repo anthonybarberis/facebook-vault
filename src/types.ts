@@ -1,5 +1,5 @@
 // ─── Source tagging ──────────────────────────────────────────────────────────
-export type ExportSource = 'export2022' | 'export2026'
+export type ExportSource = string
 export type ExportFormat = '2022' | '2026'
 
 // ─── Profile ─────────────────────────────────────────────────────────────────

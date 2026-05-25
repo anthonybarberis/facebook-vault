@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useVault } from '../store/vault'
 import { FBFriend } from '../types'
 import { formatDateShort } from '../utils/format'
+import SourceBadge from './SourceBadge'
 
 function initials(name: string): string {
   return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -34,13 +35,7 @@ function FriendCard({ friend, messageCount }: { friend: FBFriend; messageCount: 
           {messageCount > 0 && ` · ${messageCount.toLocaleString()} messages`}
         </div>
       </div>
-      <span className={`text-xs px-1.5 py-0.5 rounded ${
-        friend.source === 'export2022'
-          ? 'bg-violet-100 text-violet-600'
-          : 'bg-emerald-100 text-emerald-600'
-      }`}>
-        {friend.source === 'export2022' ? '\'22' : '\'26'}
-      </span>
+      <SourceBadge source={friend.source} />
     </div>
   )
 }

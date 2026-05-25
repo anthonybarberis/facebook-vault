@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react'
 import { useVault } from '../store/vault'
 import { VaultData } from '../types'
 import { pluralize } from '../utils/format'
+import { exportColor } from '../utils/exports'
 
 export type ViewName = 'timeline' | 'albums' | 'messages' | 'events' | 'people' | 'activity' | 'stats' | 'memories'
 
@@ -93,7 +94,7 @@ export default function Layout({ view, onView, children }: Props) {
           <div className="p-4 border-t border-stone-100 space-y-1">
             {vault.exports.map(exp => (
               <div key={exp.source} className="flex items-center gap-2 text-xs text-stone-400">
-                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${exp.source === 'export2022' ? 'bg-violet-400' : 'bg-emerald-400'}`} />
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 ${exportColor(exp.source, vault.exports).dot}`} />
                 <span className="truncate">{exp.format} export · {pluralize((exp as unknown as Record<string,number>).postCount ?? exp.posts?.length ?? 0, 'post')}</span>
               </div>
             ))}
