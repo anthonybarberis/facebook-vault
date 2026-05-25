@@ -6,15 +6,6 @@ import PostLightbox from './PostLightbox'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function dayDiffInYear(timestamp: number, today: Date): number {
-  const pd = new Date(timestamp * 1000)
-  const postThisYear = new Date(today.getFullYear(), pd.getMonth(), pd.getDate())
-  let diff = Math.round((postThisYear.getTime() - today.getTime()) / 86400000)
-  if (diff > 182) diff -= 365
-  if (diff < -182) diff += 365
-  return diff
-}
-
 function groupByYear(posts: FBPost[]): { year: number; posts: FBPost[] }[] {
   const map = new Map<number, FBPost[]>()
   posts.forEach(p => {
@@ -25,13 +16,6 @@ function groupByYear(posts: FBPost[]): { year: number; posts: FBPost[] }[] {
   return Array.from(map.entries())
     .sort(([a], [b]) => a - b)
     .map(([year, posts]) => ({ year, posts }))
-}
-
-function relLabel(diff: number, today: Date): string {
-  if (diff === -1) return 'Yesterday'
-  if (diff === 1) return 'Tomorrow'
-  const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() + diff)
-  return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
 
 // ─── Memory Card ─────────────────────────────────────────────────────────────
@@ -47,10 +31,12 @@ function MemoryCard({ post, rootHandle }: { post: FBPost; rootHandle?: FileSyste
 
   return (
     <div className="bg-white rounded-xl border border-stone-200 p-4 shadow-sm">
-      {/* Meta row */}
-      <div className="flex items-center gap-2 mb-2 text-xs text-stone-400">
-        {place && <span>📍 {place.placeName}</span>}
-      </div>
+      {place && (
+        <div className="flex items-center gap-1.5 mb-2 text-xs text-stone-400">
+          <span>📍</span>
+          <span>{place.placeName}</span>
+        </div>
+      )}
 
       {display && (
         <p className="text-stone-800 text-sm leading-relaxed whitespace-pre-wrap">
@@ -145,113 +131,101 @@ function YearGroup({ year, posts, rootFor }: {
 
 // ─── Main View ────────────────────────────────────────────────────────────────
 
-type Tab = 'today' | 'week'
-
 export default function Memories() {
   const { state } = useVault()
-  const [tab, setTab] = useState<Tab>('today')
+  const [selectedDate, setSelectedDate] = useState(() => new Date())
 
   if (state.phase !== 'ready') return null
   const { vault } = state
-
-  const today = useMemo(() => new Date(), [])
 
   function rootFor(post: FBPost) {
     return vault.exports.find(e => e.source === post.source)?.rootHandle
   }
 
-  const { onThisDay, weekPosts } = useMemo(() => {
-    const onThisDay: FBPost[] = []
-    const weekPosts: FBPost[] = []
-
-    vault.allPosts.forEach(p => {
-      const diff = dayDiffInYear(p.timestamp, today)
-      if (diff === 0) {
-        onThisDay.push(p)
-      } else if (Math.abs(diff) <= 3) {
-        weekPosts.push(p)
-      }
+  function navigate(delta: number) {
+    setSelectedDate(d => {
+      const next = new Date(d)
+      next.setDate(next.getDate() + delta)
+      return next
     })
+  }
 
-    onThisDay.sort((a, b) => a.timestamp - b.timestamp)
-    weekPosts.sort((a, b) => a.timestamp - b.timestamp)
+  const today = useMemo(() => new Date(), [])
+  const isToday =
+    selectedDate.getMonth() === today.getMonth() &&
+    selectedDate.getDate()  === today.getDate()
 
-    return { onThisDay, weekPosts }
-  }, [vault.allPosts, today])
+  const matchingPosts = useMemo(() => {
+    const m = selectedDate.getMonth()
+    const day = selectedDate.getDate()
+    return vault.allPosts
+      .filter(p => {
+        const d = new Date(p.timestamp * 1000)
+        return d.getMonth() === m && d.getDate() === day
+      })
+      .sort((a, b) => a.timestamp - b.timestamp)
+  }, [vault.allPosts, selectedDate])
 
-  const onThisDayByYear = groupByYear(onThisDay)
-  const weekByYear = groupByYear(weekPosts)
+  const byYear = groupByYear(matchingPosts)
 
-  const todayLabel = today.toLocaleDateString('en-US', {
-    weekday: 'long', month: 'long', day: 'numeric',
-  })
+  const dateLabel = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto px-6 py-6">
 
         {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-2xl">✨</span>
-            <h1 className="text-xl font-bold text-stone-800">Memories</h1>
+        <div className="flex items-center gap-2 mb-8">
+          <span className="text-2xl">✨</span>
+          <h1 className="text-xl font-bold text-stone-800">Memories</h1>
+        </div>
+
+        {/* Date navigator */}
+        <div className="flex items-center justify-center gap-3 mb-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-lg"
+            aria-label="Previous day"
+          >
+            ‹
+          </button>
+
+          <div className="text-center min-w-[10rem]">
+            <div className="text-2xl font-bold text-stone-800">{dateLabel}</div>
+            <div className="text-xs text-stone-400 mt-0.5">
+              {matchingPosts.length === 0
+                ? 'No memories'
+                : `${matchingPosts.length} ${matchingPosts.length === 1 ? 'memory' : 'memories'} · ${byYear.length} ${byYear.length === 1 ? 'year' : 'years'}`}
+            </div>
           </div>
-          <p className="text-sm text-stone-400 ml-9">{todayLabel}</p>
-        </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-8 border-b border-stone-200">
-          {([
-            { id: 'today' as Tab, label: 'On This Day', count: onThisDay.length },
-            { id: 'week'  as Tab, label: 'This Week',   count: weekPosts.length },
-          ] as const).map(t => (
+          <button
+            onClick={() => navigate(1)}
+            className="w-9 h-9 flex items-center justify-center rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors text-lg"
+            aria-label="Next day"
+          >
+            ›
+          </button>
+
+          {!isToday && (
             <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === t.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-stone-500 hover:text-stone-700'
-              }`}
+              onClick={() => setSelectedDate(new Date())}
+              className="ml-2 text-xs text-blue-500 hover:text-blue-600 border border-blue-200 hover:border-blue-400 rounded-full px-3 py-1 transition-colors"
             >
-              {t.label}
-              {t.count > 0 && (
-                <span className={`ml-1.5 text-xs ${tab === t.id ? 'text-blue-400' : 'text-stone-400'}`}>
-                  {t.count}
-                </span>
-              )}
+              Today
             </button>
-          ))}
+          )}
         </div>
 
-        {/* On This Day */}
-        {tab === 'today' && (
-          <section>
-            {onThisDay.length === 0 ? (
-              <p className="text-stone-400 text-sm">Nothing from this day in previous years.</p>
-            ) : (
-              <div className="space-y-6">
-                {onThisDayByYear.map(({ year, posts }) => (
-                  <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {/* This Week — flat chronological feed by year */}
-        {tab === 'week' && (
-          <section>
-            {weekPosts.length === 0 ? (
-              <p className="text-stone-400 text-sm">Nothing from this week in previous years.</p>
-            ) : (
-              <div className="space-y-6">
-                {weekByYear.map(({ year, posts }) => (
-                  <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
-                ))}
-              </div>
-            )}
-          </section>
+        {/* Memories */}
+        {matchingPosts.length === 0 ? (
+          <p className="text-stone-400 text-sm text-center py-12">No memories for this day.</p>
+        ) : (
+          <div className="space-y-6">
+            {byYear.map(({ year, posts }) => (
+              <YearGroup key={year} year={year} posts={posts} rootFor={rootFor} />
+            ))}
+          </div>
         )}
 
       </div>
