@@ -196,32 +196,52 @@ function parsePosts(root, format, source, webBase) {
     return !linkAtts.every(a => a.url && textPostLinks.has(`${p.timestamp}::${a.url}`))
   })
 
-  // Merge album photo posts: Facebook serialises multi-photo uploads as N individual posts
-  // at the exact same timestamp with title "... added a new photo."  Combine them into one
-  // post with all photos so the timeline (and Memories) shows a proper photo grid.
+  // Merge album photo posts: Facebook serialises bulk photo uploads as one post per photo.
+  // Two variants exist:
+  //   • Older exports: all photos share the exact same timestamp
+  //   • Newer exports: timestamps increment ~1s per photo (sequential upload processing)
+  // Strategy: group by (source, title, album name from photo mediaTitle), then split each
+  // group on timestamp gaps > 10 min so separate upload sessions stay separate.
   const albumPhotoRe = /\badded (a new|\d+ new) photos?\b/i
-  const photoGroupMap = new Map()
+  const albumCandidates = []
   const nonGrouped = []
   for (const p of deduped) {
-    const isAlbumPhoto =
-      !p.text &&
-      p.attachments.length === 1 &&
-      p.attachments[0].type === 'photo' &&
-      albumPhotoRe.test(p.title ?? '')
-    if (isAlbumPhoto) {
-      const key = `${p.timestamp}::${p.title}::${p.source}`
-      if (!photoGroupMap.has(key)) photoGroupMap.set(key, [])
-      photoGroupMap.get(key).push(p)
+    const photoAtts = p.attachments.filter(a => a.type === 'photo')
+    if (!p.text && photoAtts.length >= 1 && albumPhotoRe.test(p.title ?? '')) {
+      albumCandidates.push(p)
     } else {
       nonGrouped.push(p)
     }
   }
-  for (const group of photoGroupMap.values()) {
-    if (group.length === 1) {
-      nonGrouped.push(group[0])
-    } else {
-      // Merge: keep first post's metadata, collect all photos as attachments
-      nonGrouped.push({ ...group[0], attachments: group.map(p => p.attachments[0]) })
+
+  albumCandidates.sort((a, b) => a.timestamp - b.timestamp)
+  const albumGroupMap = new Map()
+  for (const p of albumCandidates) {
+    const albumName = p.attachments.find(a => a.type === 'photo')?.mediaTitle ?? ''
+    const key = `${p.source}::${p.title}::${albumName}`
+    if (!albumGroupMap.has(key)) albumGroupMap.set(key, [])
+    albumGroupMap.get(key).push(p)
+  }
+
+  const GAP_SEC = 600 // >10 min between photos = treat as a separate upload session
+  for (const group of albumGroupMap.values()) {
+    // Split into upload sessions on timestamp gaps
+    const sessions = [[group[0]]]
+    for (let i = 1; i < group.length; i++) {
+      if (group[i].timestamp - group[i - 1].timestamp > GAP_SEC) sessions.push([group[i]])
+      else sessions[sessions.length - 1].push(group[i])
+    }
+    for (const session of sessions) {
+      if (session.length === 1) {
+        nonGrouped.push(session[0])
+      } else {
+        const photoAtts = session.flatMap(p => p.attachments.filter(a => a.type === 'photo'))
+        const placeAtt  = session[0].attachments.find(a => a.type === 'place')
+        nonGrouped.push({
+          ...session[0],
+          attachments: placeAtt ? [...photoAtts, placeAtt] : photoAtts,
+        })
+      }
     }
   }
 
