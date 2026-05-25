@@ -482,12 +482,11 @@ function processExport(exportRoot, source) {
 
 fs.mkdirSync(EXPORTS_DIR, { recursive: true })
 
-const sources = ['export2022', 'export2026']
 const exportData = []
 
 for (let i = 0; i < args.length; i++) {
   const exportRoot = path.resolve(args[i])
-  const source = sources[i]
+  const source = `export${i}`
   console.log(`\n📦 Processing ${source}: ${exportRoot}`)
 
   if (!fs.existsSync(exportRoot)) {

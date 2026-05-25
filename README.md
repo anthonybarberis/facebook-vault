@@ -2,7 +2,9 @@
 
 A local-first web app for exploring your Facebook data export. Browse your timeline, photos, messages, events, memories, and stats — all in a clean interface, entirely on your own computer. Nothing is uploaded anywhere.
 
-**Live app:** [anthonybarberis.github.io/facebook-vault](https://anthonybarberis.github.io/facebook-vault/)
+**Try it:** [anthonybarberis.github.io/facebook-vault](https://anthonybarberis.github.io/facebook-vault/) *(the author's deployment — see [Forking](#forking) to host your own)*
+
+Built by [Anthony Barberis](https://github.com/anthonybarberis) · MIT License
 
 ---
 
@@ -12,7 +14,7 @@ A local-first web app for exploring your Facebook data export. Browse your timel
 - **Albums** — every photo album from your exports, lightbox viewer
 - **Messages** — all conversations (inbox, archived, filtered, E2E encrypted)
 - **Events** — events you hosted, attended, or were invited to
-**People** — your friends list over time
+- **People** — your friends list over time
 - **Activity** — comments you left and reactions you gave
 - **Memories** — scrub through any day of the year and see what you posted on that date across all years
 - **Stats** — charts for posting frequency, word clouds, reaction breakdowns, most-active periods
@@ -21,7 +23,7 @@ A local-first web app for exploring your Facebook data export. Browse your timel
 
 ## Requirements
 
-- **Chrome or Edge** (desktop). The app uses the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API) to read your export folder directly without uploading it. Firefox and Safari do not support this API.
+- **Chrome or Edge** (desktop). The app uses the [File System Access API](https://developer.mozilla.org/en-mozilla/docs/Web/API/File_System_API) to read your export folder directly without uploading it. Firefox and Safari do not support this API.
 - Your Facebook data export in **JSON format** (not HTML — see below).
 
 ---
@@ -117,6 +119,21 @@ node scripts/preprocess.mjs /path/to/export [/path/to/second-export]
 This writes `public/vault-data.json` and symlinks your export folder so photos are served locally. On subsequent `npm run dev` sessions the app will skip the setup screen and load immediately.
 
 > `vault-data.json` is gitignored — it contains your personal data and should never be committed.
+
+---
+
+## Forking
+
+The app is MIT licensed — fork it, self-host it, modify it, whatever you like.
+
+**To deploy your own copy to GitHub Pages:**
+
+1. Fork this repo on GitHub.
+2. Go to your fork's **Settings → Pages** and set the source to **GitHub Actions**.
+3. The included workflow (`.github/workflows/deploy.yml`) will build and deploy automatically on every push to `main`.
+4. Your app will be live at `https://<your-username>.github.io/facebook-vault/`.
+
+No server required — it's a fully static site.
 
 ---
 
