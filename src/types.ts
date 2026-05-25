@@ -58,7 +58,7 @@ export interface FBComment {
   timestamp: number
   text: string
   author: string
-  title?: string // "Anthony commented on X's post."
+  title?: string // "You commented on X's post."
   source: ExportSource
 }
 

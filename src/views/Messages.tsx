@@ -4,19 +4,19 @@ import { FBThread, FBMessage } from '../types'
 import PhotoImg from './PhotoImg'
 import { formatDateTime, formatDateShort } from '../utils/format'
 
-const ME = 'Anthony Barberis'
-
 function ThreadItem({
   thread,
   selected,
+  myName,
   onClick,
 }: {
   thread: FBThread
   selected: boolean
+  myName: string
   onClick: () => void
 }) {
   const lastMsg = thread.messages[thread.messages.length - 1]
-  const others = thread.participants.filter(p => p && p !== ME)
+  const others = thread.participants.filter(p => p && p !== myName)
   const displayName = thread.title || others.join(', ') || 'Unknown'
 
   return (
@@ -36,7 +36,7 @@ function ThreadItem({
       </div>
       {lastMsg?.content && (
         <div className="text-xs text-stone-400 truncate">
-          {lastMsg.senderName === ME ? 'You: ' : ''}{lastMsg.content}
+          {lastMsg.senderName === myName ? 'You: ' : ''}{lastMsg.content}
         </div>
       )}
       <div className="flex items-center gap-2 mt-1">
@@ -55,11 +55,13 @@ function ThreadItem({
 function MessageBubble({
   msg,
   rootHandle,
+  myName,
 }: {
   msg: FBMessage
   rootHandle: FileSystemDirectoryHandle
+  myName: string
 }) {
-  const isMe = msg.senderName === ME || msg.senderName === ''
+  const isMe = msg.senderName === myName || msg.senderName === ''
   const hasContent = msg.content || msg.photos?.length || msg.videos?.length || msg.sticker
 
   if (!hasContent && msg.type === 'Subscribe') return null
@@ -112,14 +114,14 @@ function MessageBubble({
   )
 }
 
-function ThreadView({ thread, rootHandle }: { thread: FBThread; rootHandle: FileSystemDirectoryHandle }) {
+function ThreadView({ thread, rootHandle, myName }: { thread: FBThread; rootHandle: FileSystemDirectoryHandle; myName: string }) {
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'instant' })
   }, [thread.id])
 
-  const others = thread.participants.filter(p => p && p !== ME)
+  const others = thread.participants.filter(p => p && p !== myName)
   const displayName = thread.title || others.join(', ') || 'Unknown'
 
   // Group messages by date
@@ -157,7 +159,7 @@ function ThreadView({ thread, rootHandle }: { thread: FBThread; rootHandle: File
               <div className="flex-1 h-px bg-stone-200" />
             </div>
             {group.messages.map((msg, i) => (
-              <MessageBubble key={i} msg={msg} rootHandle={rootHandle} />
+              <MessageBubble key={i} msg={msg} rootHandle={rootHandle} myName={myName} />
             ))}
           </div>
         ))}
@@ -171,6 +173,7 @@ export default function Messages() {
   const { state } = useVault()
   if (state.phase !== 'ready') return null
   const { vault } = state
+  const myName = vault.profiles[0]?.name ?? ''
 
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<FBThread | null>(null)
@@ -234,6 +237,7 @@ export default function Messages() {
               key={thread.id}
               thread={thread}
               selected={selected?.id === thread.id}
+              myName={myName}
               onClick={() => setSelected(thread)}
             />
           ))}
@@ -246,7 +250,7 @@ export default function Messages() {
       {/* Thread view */}
       <div className="flex-1 overflow-hidden">
         {selected ? (
-          <ThreadView thread={selected} rootHandle={rootFor(selected)} />
+          <ThreadView thread={selected} rootHandle={rootFor(selected)} myName={myName} />
         ) : (
           <div className="h-full flex items-center justify-center text-stone-300 text-sm">
             Select a conversation

@@ -382,10 +382,10 @@ function parsePageLikes(root, format, source) {
   return list.map((r, i) => ({ id: `${source}:pagelike:${i}`, name: r.name, timestamp: r.timestamp ?? 0, source })).sort((a, b) => b.timestamp - a.timestamp)
 }
 
-function parseMessages(root, format, source, webBase) {
+function parseMessages(root, format, source, webBase, selfName) {
   const threads = []
   const msgBase = format === '2022' ? path.join(root, 'messages') : path.join(root, 'your_facebook_activity', 'messages')
-  const ME = 'Anthony Barberis'
+  const ME = selfName ?? ''
 
   const cats = [
     { dir: 'inbox', category: 'inbox' },
@@ -473,7 +473,7 @@ function processExport(exportRoot, source) {
   t = tick('friends'); const friends = parseFriends(exportRoot, format, source); console.log(`done (${friends.length} friends)`)
   t = tick('events');  const events = parseEvents(exportRoot, format, source); console.log(`done (${events.length} events)`)
   t = tick('page likes'); const pageLikes = parsePageLikes(exportRoot, format, source); console.log(`done (${pageLikes.length})`)
-  t = tick('messages (may take a moment)'); const threads = parseMessages(exportRoot, format, source, webBase); console.log(`done (${threads.length} threads)`)
+  t = tick('messages (may take a moment)'); const threads = parseMessages(exportRoot, format, source, webBase, profile?.name ?? ''); console.log(`done (${threads.length} threads)`)
 
   return { source, format, profile, posts, comments, reactions, albums, threads, friends, events, pageLikes }
 }
