@@ -44,7 +44,8 @@ async function parseThreadDir(
   threadDir: FileSystemDirectoryHandle,
   category: ThreadCategory,
   source: ExportSource,
-  format: ExportFormat
+  format: ExportFormat,
+  selfName: string
 ): Promise<FBThread | null> {
   const rawFiles = await readAllMessageFiles<Raw>(threadDir)
   if (rawFiles.length === 0) return null
@@ -55,7 +56,7 @@ async function parseThreadDir(
     .map((p: Raw) => p.name ?? '')
     .filter(Boolean)
 
-  const title: string = first.title || participants.filter(n => n !== 'Anthony Barberis').join(', ') || 'Unknown'
+  const title: string = first.title || participants.filter(n => n !== selfName).join(', ') || 'Unknown'
 
   const isGroup = participants.length > 2
 
@@ -86,6 +87,7 @@ async function parseThreadsInDir(
   category: ThreadCategory,
   source: ExportSource,
   format: ExportFormat,
+  selfName: string,
   onProgress?: (done: number) => void
 ): Promise<{ threads: FBThread[]; marketplace: FBMarketplaceConversation[] }> {
   const threads: FBThread[] = []
@@ -94,20 +96,17 @@ async function parseThreadsInDir(
   const dirs = await listDirs(parentDir)
   let done = 0
   for (const threadDir of dirs) {
-    const thread = await parseThreadDir(threadDir, category, source, format)
+    const thread = await parseThreadDir(threadDir, category, source, format, selfName)
     if (thread) {
-      // Detect marketplace threads: title contains item descriptions, or many messages about buying/selling
-      const isMarketplace = thread.participants.some(p =>
-        threadDir.name.toLowerCase().startsWith('anthony') && !p.includes('Barberis')
-      ) && thread.messages.some(m =>
+      // Detect marketplace threads by message content patterns
+      const isMarketplace = thread.messages.some(m =>
         /\$\d+|how much|interested|sold|available|pickup|shipping/i.test(m.content ?? '')
       )
 
       if (isMarketplace && category === 'inbox') {
         // Classify as marketplace conversation
-        const selfName = 'Anthony Barberis'
         const otherParticipants = thread.participants.filter(p => p !== selfName)
-        const role: 'buyer' | 'seller' = thread.title.toLowerCase().includes('anthony') ? 'seller' : 'buyer'
+        const role: 'buyer' | 'seller' = otherParticipants.length > 0 ? 'buyer' : 'seller'
         marketplace.push({
           id: thread.id,
           title: thread.title,
@@ -131,6 +130,7 @@ export async function parseMessages(
   root: FileSystemDirectoryHandle,
   format: ExportFormat,
   source: ExportSource,
+  selfName: string,
   onProgress?: (stage: string, done: number, total: number) => void
 ): Promise<{ threads: FBThread[]; marketplace: FBMarketplaceConversation[] }> {
   const allThreads: FBThread[] = []
@@ -156,7 +156,7 @@ export async function parseMessages(
     const threadDirs = await listDirs(dir)
     onProgress?.(name, 0, threadDirs.length)
 
-    const { threads, marketplace } = await parseThreadsInDir(dir, category, source, format, (done) => {
+    const { threads, marketplace } = await parseThreadsInDir(dir, category, source, format, selfName, (done) => {
       onProgress?.(name, done, threadDirs.length)
     })
     allThreads.push(...threads)

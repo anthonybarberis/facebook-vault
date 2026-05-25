@@ -48,7 +48,7 @@ export async function parseExport(
 
   step('Reading messages… (this may take a moment)')
   const { threads, marketplace } = await parseMessages(
-    root, format, source,
+    root, format, source, profile?.name ?? '',
     (stage, done, total) => onProgress({ stage: `Messages: ${stage} (${done}/${total})`, current: done, total })
   ).catch(() => ({ threads: [], marketplace: [] }))
 

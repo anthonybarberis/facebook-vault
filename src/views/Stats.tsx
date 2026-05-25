@@ -9,6 +9,9 @@ import {
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899']
 
+// System/bot account names to exclude from friend stats
+const SYSTEM_NAMES = new Set(['Facebook', 'Messenger', 'Instagram', 'Facebook Pay', 'Marketplace'])
+
 const STOP_WORDS = new Set([
   'the','and','a','an','is','it','in','on','of','to','for','that','this','was',
   'with','are','you','he','she','we','they','at','be','as','not','but','or',
@@ -74,7 +77,6 @@ export default function Stats() {
 
   // Top friends by message count
   const myName = vault.profiles[0]?.name ?? ''
-  const SYSTEM_NAMES = new Set(['Facebook', 'Messenger', 'Instagram'])
   const topFriends = useMemo(() => {
     const counts: Record<string, number> = {}
     for (const thread of vault.allThreads) {
